@@ -23,6 +23,9 @@ struct Config {
 
 fn main() -> Result<()> {
     dotenv::dotenv().ok();
+    let path = std::env::current_exe()?.parent().unwrap().join(".env");
+    dotenv::from_filename(path).ok();
+
     let matches = Command::new("llm-term")
         .version("1.0")
         .author("dh1101")
@@ -65,7 +68,8 @@ fn main() -> Result<()> {
     let mut cache = load_cache(&cache_path)?;
 
     if let Some(prompt) = matches.get_one::<String>("prompt") {
-        let disable_cache = matches.get_flag("disable-cache");
+        // let disable_cache = matches.get_flag("disable-cache");
+        let disable_cache = true;
 
         if !disable_cache {
             if let Some(cached_command) = cache.get(prompt) {

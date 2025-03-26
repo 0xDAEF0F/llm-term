@@ -33,11 +33,13 @@ impl Shell {
         }
 
         std::env::var("SHELL")
-            .unwrap_or_else(|_| "sh".to_string()).as_str()
+            .unwrap_or_else(|_| "sh".to_string())
+            .as_str()
             .into()
     }
 
-    /// Converts the shell type to a shell command and a command argument.
+    /// Converts the shell type to a shell command and a command
+    /// argument.
     pub fn to_shell_command_and_command_arg(&self) -> (String, String) {
         match self {
             Shell::Powershell => ("powershell".to_string(), "-Command".to_string()),

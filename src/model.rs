@@ -1,8 +1,10 @@
-use openai_api_rust::{Auth, Message, OpenAI, Role};
-use openai_api_rust::chat::{ChatApi, ChatBody};
+use crate::{shell::Shell, Config};
+use anyhow::Result;
+use openai_api_rust::{
+    chat::{ChatApi, ChatBody},
+    Auth, Message, OpenAI, Role,
+};
 use serde::{Deserialize, Serialize};
-use crate::Config;
-use crate::shell::Shell;
 
 #[derive(Serialize, Deserialize)]
 pub enum Model {
@@ -17,7 +19,11 @@ pub enum Model {
 }
 
 impl Model {
-    pub fn llm_get_command(&self, config: &Config, user_prompt: &str) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    pub fn llm_get_command(
+        &self,
+        config: &Config,
+        user_prompt: &str,
+    ) -> Result<Option<String>> {
         let model_name = self.get_model_name();
         let auth = self.get_auth();
         let client = OpenAI::new(auth, self.get_openai_endpoint().as_str());
@@ -38,18 +44,24 @@ impl Model {
             logit_bias: None,
             user: None,
             messages: vec![
-                Message { role: Role::System, content: system_prompt.to_string() },
-                Message { role: Role::User, content: user_prompt.to_string() }
+                Message {
+                    role: Role::System,
+                    content: system_prompt.to_string(),
+                },
+                Message {
+                    role: Role::User,
+                    content: user_prompt.to_string(),
+                },
             ],
         };
 
         match client.chat_completion_create(&body) {
-            Ok(response) => Ok(response.choices.first()
-                .map(|choice| choice.message.as_ref())
-                .flatten()
-                .map(|message| message.content.clone())
-            ),
-            Err(e) => Err(format!("Error: {:?}", e).into()),
+            Ok(response) => Ok(response
+                .choices
+                .first()
+                .and_then(|choice| choice.message.as_ref())
+                .map(|message| message.content.clone())),
+            Err(e) => anyhow::bail!("Error: {:?}", e),
         }
     }
 
@@ -70,9 +82,10 @@ impl Model {
     }
 
     fn get_auth(&self) -> Auth {
+        let api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set");
         match self {
-            Model::OpenAiGpt4o => Auth::from_env().expect("OPENAI_API_KEY environment variable not set"),
-            Model::OpenAiGpt4oMini => Auth::from_env().expect("OPENAI_API_KEY environment variable not set"),
+            Model::OpenAiGpt4o => Auth::new(&api_key),
+            Model::OpenAiGpt4oMini => Auth::new(&api_key),
             Model::Ollama(_) => Auth::new("ollama"),
         }
     }
@@ -99,6 +112,4 @@ impl Model {
             Assume you are operating in the current directory of the user unless explicitly stated otherwise.
         ", shell_command_type, std::env::consts::OS)
     }
-
-
 }

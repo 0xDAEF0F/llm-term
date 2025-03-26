@@ -191,19 +191,11 @@ fn get_command_from_llm(
     cache_path: &PathBuf,
     prompt: &str,
 ) -> Result<()> {
-    match &config.model.llm_get_command(config, prompt) {
+    match config.model.llm_get_command(config, prompt) {
         Ok(Some(command)) => {
-            println!("{}", &command.cyan().bold());
-            println!("{}", "Do you want to execute this command? (y/n)".yellow());
-
-            let mut user_input = String::new();
-            io::stdin().read_line(&mut user_input)?;
-
-            if user_input.trim().to_lowercase() == "y" {
-                execute_command(command)?;
-            } else {
-                println!("{}", "Command execution cancelled.".yellow());
-            }
+            // the purpose of just printing the command is so that the user can
+            // call this within their shell and edit it if needed. see: "commandline -i (fish)"
+            println!("{}", command);
 
             // Save command to cache
             cache.insert(prompt.to_string(), command.to_string());
